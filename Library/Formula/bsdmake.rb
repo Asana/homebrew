@@ -5,10 +5,6 @@ class Bsdmake < Formula
   url 'http://opensource.apple.com/tarballs/bsdmake/bsdmake-24.tar.gz'
   sha1 '9ce3c3fc01e0eb47d82827b1eb227eb371fefd5c'
 
-  if MacOS::Xcode.provides_autotools? or File.file? "/usr/bin/bsdmake"
-    keg_only "Recent versions of OS X no longer provide this tool."
-  end
-
   def patches
     # MacPorts patches to make bsdmake play nice with our prefix system
     { :p0 => %W[
