@@ -1,36 +1,11 @@
 require 'formula'
 
-class MySqlInstalled < Requirement
-  def message; <<-EOS.undent
-    MySQL is required to install.
-
-    You can install this with Homebrew using:
-      brew install mysql-connector-c
-        For MySQL client libraries only.
-
-      brew install mysql
-        For MySQL server.
-
-    Or you can use an official installer from:
-      http://dev.mysql.com/downloads/mysql/
-    EOS
-  end
-
-  def satisfied?
-    which 'mysql_config'
-  end
-
-  def fatal?
-    true
-  end
-end
-
 class Zabbix < Formula
   homepage 'http://www.zabbix.com/'
-  url 'http://downloads.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/2.0.2/zabbix-2.0.2.tar.gz'
-  sha1 'aaa678bc6abc6cb2b174e599108ad19f187047c9'
+  url 'http://sourceforge.net/projects/zabbix/files/ZABBIX%20Latest%20Stable/2.0.4/zabbix-2.0.4.tar.gz'
+  sha1 '26ffd4616a96434b3c357146780f66058f6fbd80'
 
-  depends_on MySqlInstalled.new
+  depends_on :mysql
   depends_on 'fping'
   depends_on 'libssh2'
 

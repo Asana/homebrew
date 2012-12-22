@@ -2,16 +2,16 @@ require 'formula'
 
 class ScmManagerCliClient < Formula
   homepage 'http://www.scm-manager.org'
-  url 'http://maven.scm-manager.org/nexus/content/repositories/releases/sonia/scm/clients/scm-cli-client/1.21/scm-cli-client-1.21-jar-with-dependencies.jar'
-  version '1.21'
-  sha1 '286a53e90aa44b351d96e8682ae97ee9e6c24e7b'
+  url 'http://maven.scm-manager.org/nexus/content/repositories/releases/sonia/scm/clients/scm-cli-client/1.24/scm-cli-client-1.24-jar-with-dependencies.jar'
+  version '1.24'
+  sha1 '2ff5cdcc5804b6917b1da36dd11f369b032408b0'
 end
 
 class ScmManager < Formula
   homepage 'http://www.scm-manager.org'
-  url 'http://maven.scm-manager.org/nexus/content/repositories/releases/sonia/scm/scm-server/1.21/scm-server-1.21-app.tar.gz'
-  version '1.21'
-  sha1 '6fe9969c1000546fee28a6f3f6c4aa631d772371'
+  url 'http://maven.scm-manager.org/nexus/content/repositories/releases/sonia/scm/scm-server/1.24/scm-server-1.24-app.tar.gz'
+  version '1.24'
+  sha1 'ee6aa84978aa6ff2b8a8ba6fe444f223193be35f'
 
   skip_clean 'libexec/var/log'
 
@@ -39,38 +39,24 @@ class ScmManager < Formula
     chmod 0755, scmCliClient
   end
 
-  def caveats; <<-EOS.undent
-    If this is your first install, automatically load on login with:
-        mkdir -p ~/Library/LaunchAgents
-        cp #{plist_path} ~/Library/LaunchAgents/
-        launchctl load -w ~/Library/LaunchAgents/#{plist_path.basename}
+  plist_options :manual => 'scm-server start'
 
-    If this is an upgrade and you already have the #{plist_path.basename} loaded:
-        launchctl unload -w ~/Library/LaunchAgents/#{plist_path.basename}
-        cp #{plist_path} ~/Library/LaunchAgents/
-        launchctl load -w ~/Library/LaunchAgents/#{plist_path.basename}
-
-    Or start manually:
-      scm-server start
+  def plist; <<-EOS.undent
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0">
+      <dict>
+        <key>Label</key>
+        <string>#{plist_name}</string>
+        <key>ProgramArguments</key>
+        <array>
+          <string>#{opt_prefix}/bin/scm-server</string>
+          <string>start</string>
+        </array>
+        <key>RunAtLoad</key>
+        <true/>
+      </dict>
+    </plist>
     EOS
-  end
-
-def startup_plist; <<-EOS
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-  <dict>
-    <key>Label</key>
-    <string>#{plist_name}</string>
-    <key>ProgramArguments</key>
-    <array>
-      <string>#{bin}/scm-server</string>
-      <string>start</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-  </dict>
-</plist>
-EOS
   end
 end
