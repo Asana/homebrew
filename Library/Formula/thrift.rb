@@ -4,8 +4,8 @@ class Thrift < Formula
   homepage 'http://thrift.apache.org'
   # Asana note: This doesn't agree with the version of thrift that we get for fb303.
   # This should be fine.
-  url 'http://www.apache.org/dyn/closer.cgi?path=thrift/0.9.0/thrift-0.9.0.tar.gz'
-  sha1 'fefcf4d729bf80da419407dfa028740aa95fa2e3'
+  url 'http://www.apache.org/dyn/closer.cgi?path=thrift/0.8.0/thrift-0.8.0.tar.gz'
+  sha1 '1d652d7078d9cc70e2a45d3119b13e86ebd446da'
 
   head 'http://svn.apache.org/repos/asf/thrift/trunk'
 
