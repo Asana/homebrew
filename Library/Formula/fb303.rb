@@ -18,6 +18,8 @@ class Fb303 < Formula
     # These were in admin/configure.py. I don't know what they do.
     ENV["CPPFLAGS"] = "-DHAVE_NETDB_H=1 -DHAVE_NETINET_IN_H=1 -DHAVE_INTTYPES_H=1 -fpermissive -fPIC"
     ENV["PY_PREFIX"] = "#{HOMEBREW_PREFIX}"
+    ENV["CC"] = "gcc"
+    ENV["CXX"] = "g++"
     system "./bootstrap.sh"
 
     # Language bindings try to install outside of Homebrew's prefix, so
