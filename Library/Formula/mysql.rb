@@ -2,7 +2,7 @@ require 'formula'
 
 class Mysql < Formula
   homepage 'http://dev.mysql.com/doc/refman/5.5/en/'
-  url 'http://dev.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.28.tar.gz/from/http://cdn.mysql.com/'
+  url 'https://s3.amazonaws.com/server_packages/mysql-5.5.28.tar.gz'
   version '5.5.28'
   sha1 '7b029e61db68866eeea0bec40d47fcdced30dd36'
 
