@@ -3,7 +3,7 @@ require 'formula'
 class Elasticsearch < Formula
   homepage 'http://www.elasticsearch.org'
   url 'https://s3.amazonaws.com/server_packages/elasticsearch-0.90.1.tar.gz'
-  sha1 '01e641c5780d87f540891d269052704ef8152a9d'
+  sha1 '0d6e94909384a9ae78a6cd95c84de1a7a0228b7a'
 
   head 'https://github.com/daveey/elasticsearch.git', :branch => 'asana-stable'
 
