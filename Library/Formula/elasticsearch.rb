@@ -5,7 +5,7 @@ class Elasticsearch < Formula
   url 'https://download.elasticsearch.org/elasticsearch/elasticsearch/elasticsearch-0.90.1.tar.gz'
   sha1 '01e641c5780d87f540891d269052704ef8152a9d'
 
-  head 'https://github.com/elasticsearch/elasticsearch.git'
+  head 'https://github.com/daveey/elasticsearch.git', :branch => 'asana-stable'
 
   depends_on 'maven' if build.head?
 
