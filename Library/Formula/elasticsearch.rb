@@ -2,8 +2,8 @@ require 'formula'
 
 class Elasticsearch < Formula
   homepage 'http://www.elasticsearch.org'
-  url 'https://s3.amazonaws.com/server_packages/elasticsearch-0.90.1.tar.gz'
-  sha1 '0d6e94909384a9ae78a6cd95c84de1a7a0228b7a'
+  url 'https://s3.amazonaws.com/server_packages/elasticsearch-0.90.2.tar.gz'
+  sha1 'b09f5c656912e5c08c9eefa7e95566f1ba7a1ea5'
 
   head 'https://github.com/daveey/elasticsearch.git', :branch => 'asana-stable'
 
