@@ -2,8 +2,8 @@ require 'formula'
 
 class Ser2net < Formula
   homepage 'http://ser2net.sourceforge.net'
-  url 'http://downloads.sourceforge.net/project/ser2net/ser2net/2.7/ser2net-2.7.tar.gz'
-  sha1 'ebceb41479ce5e33f400b1564d420dc12b6b44f6'
+  url 'http://downloads.sourceforge.net/project/ser2net/ser2net/ser2net-2.9.1.tar.gz'
+  sha1 'dc8662a1c83391a6b437bc9d2443fb7a65548a9a'
 
   def install
     ENV.deparallelize
@@ -36,8 +36,6 @@ class Ser2net < Formula
         <true/>
         <key>KeepAlive</key>
         <true/>
-        <key>UserName</key>
-        <string>#{`whoami`.chomp}</string>
         <key>ProgramArguments</key>
         <array>
             <string>#{opt_prefix}/sbin/ser2net</string>

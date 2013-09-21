@@ -2,8 +2,8 @@ require 'formula'
 
 class Xrootd < Formula
   homepage 'http://xrootd.slac.stanford.edu/index.html'
-  url 'http://xrootd.slac.stanford.edu/download/v3.2.6/xrootd-3.2.6.tar.gz'
-  sha1 '2eb2fc1d5b19d8080edb716bfa37469e54e5cde4'
+  url 'http://xrootd.slac.stanford.edu/download/v3.3.3/xrootd-3.3.3.tar.gz'
+  sha1 '087905489dda62536755a765b9296f0c7f37c149'
 
   depends_on 'cmake' => :build
 
@@ -12,6 +12,7 @@ class Xrootd < Formula
       system "cmake", "..", *std_cmake_args
       system "make install"
     end
+    share.install prefix/"man" # Put man pages in correct place
   end
 
   def test

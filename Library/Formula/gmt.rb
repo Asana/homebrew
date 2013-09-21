@@ -1,24 +1,23 @@
 require 'formula'
 
-class Gshhs < Formula
-  homepage 'http://gmt.soest.hawaii.edu/'
-  url 'ftp://ftp.soest.hawaii.edu/gmt/gshhs-2.2.0.tar.bz2'
-  sha1 '786d58b9a335d3bacb37f40f21ee3bfbb424cd10'
-end
-
 class Gmt < Formula
   homepage 'http://gmt.soest.hawaii.edu/'
-  url 'ftp://ftp.soest.hawaii.edu/gmt/gmt-4.5.8.tar.bz2'
-  sha1 '823783c1abc9a7e0493c35661e516d4f607fff17'
+  url 'ftp://ftp.soest.hawaii.edu/gmt/gmt-4.5.9.tar.bz2'
+  sha1 '711922fd99dcd47ace522f1e46fcafa5beab8c94'
 
   depends_on 'gdal'
   depends_on 'netcdf'
 
+  resource 'gshhg' do
+    url 'ftp://ftp.soest.hawaii.edu/gmt/gshhg-gmt-nc4-2.2.2.tar.gz'
+    sha1 'f01c322ad1767abf99818c250b1a58b3e2c12e1c'
+  end
+
   def install
     ENV.deparallelize # Parallel builds don't work due to missing makefile dependencies
-
+    datadir = share/name
     system "./configure", "--prefix=#{prefix}",
-                          "--datadir=#{share}/#{name}",
+                          "--datadir=#{datadir}",
                           "--enable-gdal=#{HOMEBREW_PREFIX}",
                           "--enable-netcdf=#{HOMEBREW_PREFIX}",
                           "--enable-shared",
@@ -30,7 +29,6 @@ class Gmt < Formula
     system "make install-data"
     system "make install-suppl"
     system "make install-man"
-
-    Gshhs.new.brew { (share+name).install Dir['share/*'] }
+    datadir.install resource('gshhg')
   end
 end

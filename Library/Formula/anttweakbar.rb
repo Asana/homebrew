@@ -2,9 +2,9 @@ require 'formula'
 
 class Anttweakbar < Formula
   homepage 'http://www.antisphere.com/Wiki/tools:anttweakbar'
-  url 'http://www.antisphere.com/Tools/AntTweakBar/AntTweakBar_114.zip'
-  version '1.14'
-  sha1 'b6405082efb6d6f26b3856a1b12c4e520055390e'
+  url 'http://downloads.sourceforge.net/project/anttweakbar/AntTweakBar_116.zip'
+  version '1.16'
+  sha1 '5743321df3b074f9a82b5ef3e6b54830a715b938'
 
   def install
     cd 'src' do

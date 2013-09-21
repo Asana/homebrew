@@ -2,10 +2,17 @@ require 'formula'
 
 class Libgcrypt < Formula
   homepage 'http://gnupg.org/'
-  url 'ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.0.tar.bz2'
-  sha1 '3e776d44375dc1a710560b98ae8437d5da6e32cf'
+  url 'ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.3.tar.bz2'
+  sha1 '2c6553cc17f2a1616d512d6870fe95edf6b0e26e'
 
   depends_on 'libgpg-error'
+
+  option :universal
+
+  fails_with :clang do
+    build 77
+    cause "basic test fails"
+  end
 
   def patches
     if ENV.compiler == :clang
@@ -21,7 +28,7 @@ class Libgcrypt < Formula
   end
 
   def install
-    ENV.universal_binary
+    ENV.universal_binary if build.universal?
 
     system "./configure", "--disable-dependency-tracking",
                           "--prefix=#{prefix}",

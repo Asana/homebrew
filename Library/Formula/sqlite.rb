@@ -1,24 +1,18 @@
 require 'formula'
 
-class SqliteFunctions < Formula
-  url 'http://www.sqlite.org/contrib/download/extension-functions.c?get=25', :using  => :nounzip
-  sha1 'c68fa706d6d9ff98608044c00212473f9c14892f'
-  version '2010-01-06'
-end
-
-class SqliteDocs < Formula
-  url 'http://www.sqlite.org/sqlite-doc-3071500.zip'
-  sha1 'e3f5ee445f13065a6c17f89a3e70331b0a6f2b34'
-  version '3.7.15'
-end
-
 class Sqlite < Formula
   homepage 'http://sqlite.org/'
-  url 'http://sqlite.org/sqlite-autoconf-3071500.tar.gz'
-  version '3.7.15'
-  sha1 '7b463b76b7a0e322dcdf7bf2221f6e508511e392'
+  url 'http://www.sqlite.org/2013/sqlite-autoconf-3080002.tar.gz'
+  version '3.8.0.2'
+  sha1 '294c30e882a0d45877bce09afe72d08ccfc6b650'
 
-  depends_on 'readline' => :recommended
+  bottle do
+    sha1 '453723173f6f2e3c318924e0b750ce5401a81c81' => :mountain_lion
+    sha1 '00dab991a57b175a51f1e91d09d052c9ec86210f' => :lion
+    sha1 'feb9482fbe4a06133462a16e98c3794e25a7eca1' => :snow_leopard
+  end
+
+  keg_only :provided_by_osx, "OS X provides an older sqlite3."
 
   option :universal
   option 'with-docs', 'Install HTML documentation'
@@ -26,9 +20,23 @@ class Sqlite < Formula
   option 'with-fts', 'Enable the FTS module'
   option 'with-functions', 'Enable more math and string functions for SQL queries'
 
+  depends_on 'readline' => :recommended
+
+  resource 'functions' do
+    url 'http://www.sqlite.org/contrib/download/extension-functions.c?get=25', :using  => :nounzip
+    version '2010-01-06'
+    sha1 'c68fa706d6d9ff98608044c00212473f9c14892f'
+  end
+
+  resource 'docs' do
+    url 'http://www.sqlite.org/2013/sqlite-doc-3080002.zip'
+    version '3.8.0.2'
+    sha1 '43e314880cee7c97c240131625f6442c2ca7b109'
+  end
+
   def install
-    ENV.append 'CPPFLAGS', "-DSQLITE_ENABLE_RTREE" unless build.include? "without-rtree"
-    ENV.append 'CPPFLAGS', "-DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_FTS3_PARENTHESIS" if build.include? "with-fts"
+    ENV.append 'CPPFLAGS', "-DSQLITE_ENABLE_RTREE" unless build.without? "rtree"
+    ENV.append 'CPPFLAGS', "-DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_FTS3_PARENTHESIS" if build.with? "fts"
 
     # enable these options by default
     ENV.append 'CPPFLAGS', "-DSQLITE_ENABLE_COLUMN_METADATA"
@@ -39,8 +47,8 @@ class Sqlite < Formula
     system "./configure", "--prefix=#{prefix}", "--disable-dependency-tracking", "--enable-dynamic-extensions"
     system "make install"
 
-    if build.include? "with-functions"
-      SqliteFunctions.new.brew { mv 'extension-functions.c?get=25', buildpath/'extension-functions.c' }
+    if build.with? "functions"
+      buildpath.install resource('functions')
       system ENV.cc, "-fno-common",
                      "-dynamiclib",
                      "extension-functions.c",
@@ -48,12 +56,11 @@ class Sqlite < Formula
                      *ENV.cflags.split
       lib.install "libsqlitefunctions.dylib"
     end
-
-    SqliteDocs.new.brew { doc.install Dir['*'] } if build.include? "with-docs"
+    doc.install resource('docs') if build.with? "docs"
   end
 
   def caveats
-    if build.include? 'with-functions' then <<-EOS.undent
+    if build.with? 'functions' then <<-EOS.undent
       Usage instructions for applications calling the sqlite3 API functions:
 
         In your application, call sqlite3_enable_load_extension(db,1) to

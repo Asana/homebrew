@@ -2,12 +2,13 @@ require 'formula'
 
 class Dnsmasq < Formula
   homepage 'http://www.thekelleys.org.uk/dnsmasq/doc.html'
-  url 'http://www.thekelleys.org.uk/dnsmasq/dnsmasq-2.63.tar.gz'
-  sha256 'fd86e3bcc6a63c76e35e4a20baa790e7bbbfc7b43845cae85ca8ffd024467710'
+  url 'http://www.thekelleys.org.uk/dnsmasq/dnsmasq-2.66.tar.gz'
+  sha256 '36232fa23d1a8efc6f84a29da5ff829c2aa40df857b9116a9320ea37b651a982'
 
   option 'with-idn', 'Compile with IDN support'
 
   depends_on "libidn" if build.include? 'with-idn'
+  depends_on 'pkg-config' => :build
 
   def install
     ENV.deparallelize

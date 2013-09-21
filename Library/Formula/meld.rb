@@ -2,8 +2,8 @@ require 'formula'
 
 class Meld < Formula
   homepage 'http://meldmerge.org'
-  url 'http://ftp.gnome.org/pub/GNOME/sources/meld/1.6/meld-1.6.0.tar.xz'
-  sha256 'a0ec4e19e85ea4df0214da4c92a4069095d37a252ab240fc1bc00f29a627fea8'
+  url 'http://ftp.gnome.org/pub/GNOME/sources/meld/1.7/meld-1.7.2.tar.xz'
+  sha1 '660e47ceb06fd9035a6fcac12da373f8a60fec31'
 
   depends_on 'intltool' => :build
   depends_on 'xz' => :build

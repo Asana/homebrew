@@ -1,7 +1,6 @@
 require 'formula'
-require 'download_strategy'
 
-class VmallocDownloadStrategy <CurlDownloadStrategy
+class VmallocDownloadStrategy < CurlDownloadStrategy
   def _fetch
     # downloading from AT&T requires using the following credentials
     credentials = 'I accept www.opensource.org/licenses/cpl:.'
@@ -10,9 +9,9 @@ class VmallocDownloadStrategy <CurlDownloadStrategy
 end
 
 class Vmalloc < Formula
+  homepage 'http://www2.research.att.com/sw/download/'
   url 'http://www2.research.att.com/~gsf/download/tgz/vmalloc.2005-02-01.tgz',
       :using => VmallocDownloadStrategy
-  homepage 'http://www2.research.att.com/sw/download/'
   sha1 '13e45960831226b2b2ac93cdbe23d1d4c6e7eb38'
   version '2005-02-01'
 

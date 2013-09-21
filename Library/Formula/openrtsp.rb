@@ -2,22 +2,19 @@ require 'formula'
 
 class Openrtsp < Formula
   homepage 'http://www.live555.com/openRTSP'
-  url 'http://www.live555.com/liveMedia/public/live.2012.11.30.tar.gz'
-  sha1 'cac0c27ebbfe5173567ea6f6ab6c7b9ccbca653e'
+  url 'http://www.live555.com/liveMedia/public/live.2013.09.11.tar.gz'
+  sha1 'ad8d7ccd36d82d8c1863827dbeabcf593f08fd2f'
 
   option "32-bit"
 
   def install
     if build.build_32_bit? || !MacOS.prefer_64_bit?
+      ENV.m32
       system "./genMakefiles macosx-32bit"
     else
       system "./genMakefiles macosx"
     end
 
-    system "make"
-
-    cd 'testProgs' do
-      bin.install 'openRTSP' ,'vobStreamer', 'playSIP'
-    end
+    system "make", "PREFIX=#{prefix}", "install"
   end
 end

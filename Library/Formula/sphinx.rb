@@ -1,19 +1,29 @@
 require 'formula'
 
-class Libstemmer < Formula
-  # upstream is constantly changing the tarball,
-  # so doing checksum verification here would require
-  # constant, rapid updates to this formula.
-  head 'http://snowball.tartarus.org/dist/libstemmer_c.tgz'
-  homepage 'http://snowball.tartarus.org/'
-end
-
 class Sphinx < Formula
   homepage 'http://www.sphinxsearch.com'
-  url 'http://sphinxsearch.com/files/sphinx-2.0.6-release.tar.gz'
-  sha1 'fe1b990052f961a100adba197abe806a3c1b70dc'
+  url 'http://sphinxsearch.com/files/sphinx-2.0.9-release.tar.gz'
+  sha1 '0fa2806fa47a689d9f55d72ce0b6d4abce52e81c'
 
   head 'http://sphinxsearch.googlecode.com/svn/trunk/'
+
+  devel do
+    url 'http://sphinxsearch.com/files/sphinx-2.1.1-beta.tar.gz'
+    sha1 '2ccbf75146f54338834a6e37250f1af3c73b9746'
+  end
+
+  option 'mysql', 'Force compiling against MySQL'
+  option 'pgsql', 'Force compiling against PostgreSQL'
+  option 'id64',  'Force compiling with 64-bit ID support'
+
+  depends_on :mysql if build.include? 'mysql'
+  depends_on :postgresql if build.include? 'pgsql'
+
+  # http://snowball.tartarus.org/
+  resource 'stemmer' do
+    url 'http://snowball.tartarus.org/dist/libstemmer_c.tgz'
+    sha1 '69056075b9fa1382e07cec6c32c8e82f3f35677b'
+  end
 
   fails_with :llvm do
     build 2334
@@ -22,29 +32,26 @@ class Sphinx < Formula
 
   fails_with :clang do
     build 421
-    cause <<-EOS.undent
-      sphinxexpr.cpp:1802:11: error: use of undeclared identifier 'ExprEval'
-    EOS
+    cause "sphinxexpr.cpp:1802:11: error: use of undeclared identifier 'ExprEval'"
   end
 
-  option 'mysql', 'Force compiling against MySQL'
-  option 'pgsql', 'Force compiling against PostgreSQL'
-  option 'id64',  'Force compiling with 64-bit ID support'
-
   def install
-    Libstemmer.new.brew { (buildpath/'libstemmer_c').install Dir['*'] }
+    (buildpath/'libstemmer_c').install resource('stemmer')
 
     args = %W[--prefix=#{prefix}
               --disable-dependency-tracking
-              --localstatedir=#{var}]
+              --localstatedir=#{var}
+              --with-libstemmer]
 
-    # always build with libstemmer support
-    args << "--with-libstemmer"
+    args << "--enable-id64" if build.include? 'id64'
 
-    # configure script won't auto-select PostgreSQL
-    args << "--with-pgsql" if build.include?('pgsql') || which('pg_config')
-    args << "--enable-id64" if build.include?('id64')
-    args << "--without-mysql" unless build.include?('mysql') || which('mysql_config')
+    %w{mysql pgsql}.each do |db|
+      if build.include? db
+        args << "--with-#{db}"
+      else
+        args << "--without-#{db}"
+      end
+    end
 
     system "./configure", *args
     system "make install"

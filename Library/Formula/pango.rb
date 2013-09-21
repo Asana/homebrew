@@ -2,27 +2,18 @@ require 'formula'
 
 class Pango < Formula
   homepage 'http://www.pango.org/'
-  url 'http://ftp.gnome.org/pub/GNOME/sources/pango/1.30/pango-1.30.1.tar.xz'
-  sha256 '3a8c061e143c272ddcd5467b3567e970cfbb64d1d1600a8f8e62435556220cbe'
+  url 'http://ftp.gnome.org/pub/GNOME/sources/pango/1.34/pango-1.34.1.tar.xz'
+  sha256 '1aea30df34a8ae4fcce71afd22aa5b57224b52916d46e3ea81ff9f1eb130e64c'
 
   option 'without-x', 'Build without X11 support'
 
   depends_on 'pkg-config' => :build
   depends_on 'xz' => :build
   depends_on 'glib'
-  depends_on :x11 unless build.include? 'without-x'
-
-  if MacOS.version == :leopard
-    depends_on 'fontconfig'
-  else
-    depends_on :fontconfig
-  end
-
-  # The Cairo library shipped with Lion contains a flaw that causes Graphviz
-  # to segfault. See the following ticket for information:
-  #   https://trac.macports.org/ticket/30370
-  # We depend on our cairo on all platforms for consistency
   depends_on 'cairo'
+  depends_on 'harfbuzz'
+  depends_on 'fontconfig'
+  depends_on :x11 unless build.without? 'x'
 
   fails_with :llvm do
     build 2326
@@ -39,9 +30,9 @@ class Pango < Formula
     ]
 
     if build.include? 'without-x'
-      args << '--without-x'
+      args << '--without-xft'
     else
-      args << '--with-x'
+      args << '--with-xft'
     end
 
     system "./configure", *args
@@ -50,10 +41,6 @@ class Pango < Formula
   end
 
   def test
-    mktemp do
-      system "#{bin}/pango-view", "-t", "test-image",
-                                  "--waterfall", "--rotate=10",
-                                  "--annotate=1", "--header"
-    end
+    system "#{bin}/pango-querymodules", "--version"
   end
 end

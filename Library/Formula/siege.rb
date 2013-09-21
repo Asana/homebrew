@@ -2,8 +2,8 @@ require 'formula'
 
 class Siege < Formula
   homepage 'http://www.joedog.org/index/siege-home'
-  url "http://www.joedog.org/pub/siege/siege-2.72.tar.gz"
-  sha1 '286e7c1b30a38d3868b743eedd87058a6ad658a2'
+  url "http://www.joedog.org/pub/siege/siege-3.0.3.tar.gz"
+  sha1 'd50cccf28046cbbe5d809f42429358ff0d05ef1c'
 
   def install
     # To avoid unnecessary warning due to hardcoded path, create the folder first

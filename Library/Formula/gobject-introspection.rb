@@ -11,9 +11,12 @@ class GobjectIntrospection < Formula
   depends_on 'xz' => :build
   depends_on 'glib'
   depends_on 'libffi'
+  # To avoid: ImportError: dlopen(./.libs/_giscanner.so, 2): Symbol not found: _PyList_Check
+  depends_on :python
 
   def install
     ENV.universal_binary if build.universal?
+    inreplace 'giscanner/transformer.py', '/usr/share', HOMEBREW_PREFIX/'share'
     system "./configure", "--disable-dependency-tracking",
                           "--prefix=#{prefix}",
                           # Tests require (at least) cairo, disable them.

@@ -20,16 +20,17 @@ class Bullet < Formula
 
     if build.include? "framework"
       args << "-DBUILD_SHARED_LIBS=ON" << "-DFRAMEWORK=ON"
-      args << "-DCMAKE_INSTALL_PREFIX=#{prefix}/Frameworks"
-      args << "-DCMAKE_INSTALL_NAME_DIR=#{prefix}/Frameworks"
+      args << "-DCMAKE_INSTALL_PREFIX=#{frameworks}"
+      args << "-DCMAKE_INSTALL_NAME_DIR=#{frameworks}"
     else
       args << "-DBUILD_SHARED_LIBS=ON" if build.include? "shared"
       args << "-DCMAKE_INSTALL_PREFIX=#{prefix}"
     end
 
-    args << "-DCMAKE_OSX_ARCHITECTURES='i386;x86_64'" if build.universal?
+    args << "-DCMAKE_OSX_ARCHITECTURES='#{Hardware::CPU.universal_archs.as_cmake_arch_flags}" if build.universal?
     args << "-DBUILD_DEMOS=OFF" if not build.include? "build-demo"
     args << "-DBUILD_EXTRAS=OFF" if not build.include? "build-extra"
+    args << "-DINSTALL_EXTRA_LIBS=ON" if build.include? "build-extra"
 
     system "cmake", *args
     system "make"

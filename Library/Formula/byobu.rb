@@ -1,12 +1,14 @@
 require 'formula'
 
 class Byobu < Formula
-  homepage 'http://launchpad.net/byobu'
-  url 'https://launchpad.net/byobu/trunk/5.21/+download/byobu_5.21.orig.tar.gz'
-  sha1 '81ed721b643addf84c7aba10f173c27dc69391bd'
+  homepage 'http://byobu.co'
+  url 'https://launchpad.net/byobu/trunk/5.43/+download/byobu_5.43.orig.tar.gz'
+  sha1 'fd951ca0db7bad74517d5d2539e8736874c117d9'
 
   depends_on 'coreutils'
   depends_on 'gnu-sed' # fails with BSD sed
+  depends_on 'tmux'
+  depends_on 'newt' => 'with-python'
 
   def install
     system "./configure", "--prefix=#{prefix}"
@@ -17,5 +19,9 @@ class Byobu < Formula
     Add the following to your shell configuration file:
       export BYOBU_PREFIX=$(brew --prefix)
     EOS
+  end
+
+  test do
+    system "#{bin}/byobu-config"
   end
 end

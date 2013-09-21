@@ -1,15 +1,14 @@
 require 'formula'
 
 class UniversalPython < Requirement
+  satisfy(:build_env => false) { archs_for_command("python").universal? }
+
   def message; <<-EOS.undent
     A universal build was requested, but Python is not a universal build
 
     Boost compiles against the Python it finds in the path; if this Python
     is not a universal build then linking will likely fail.
     EOS
-  end
-  def satisfied?
-    archs_for_command("python").universal?
   end
 end
 
@@ -23,17 +22,21 @@ class Boost149 < Formula
   env :userpaths
 
   option :universal
-  option 'with-mpi', 'Enable MPI support'
-  option 'without-python', 'Build without Python'
   option 'with-icu', 'Build regexp engine with icu support'
 
-  depends_on UniversalPython.new if build.universal? and not build.include? "without-python"
-  depends_on "icu4c" if build.include? "with-icu"
-  depends_on MPIDependency.new(:cc, :cxx) if build.include? "with-mpi"
+  depends_on :python => :recommended
+  depends_on UniversalPython if build.universal? and build.with? "python"
+  depends_on "icu4c" if build.with? 'icu'
+  depends_on :mpi => [:cc, :cxx, :optional]
 
   fails_with :llvm do
     build 2335
     cause "Dropped arguments to functions when linking with boost"
+  end
+
+  def patches
+    # Security fix for Boost.Locale. For details: http://www.boost.org/users/news/boost_locale_security_notice.html
+    {:p0 => "http://cppcms.com/files/locale/boost_locale_utf.patch"}
   end
 
   def install
@@ -46,13 +49,13 @@ class Boost149 < Formula
     # Force boost to compile using the appropriate GCC version
     open("user-config.jam", "a") do |file|
       file.write "using darwin : : #{ENV.cxx} ;\n"
-      file.write "using mpi ;\n" if build.include? 'with-mpi'
+      file.write "using mpi ;\n" if build.with? 'mpi'
     end
 
     # we specify libdir too because the script is apparently broken
     bargs = ["--prefix=#{prefix}", "--libdir=#{lib}"]
 
-    if build.include? 'with-icu'
+    if build.with? 'icu'
       icu4c_prefix = Formula.factory('icu4c').opt_prefix
       bargs << "--with-icu=#{icu4c_prefix}"
     else
@@ -69,7 +72,7 @@ class Boost149 < Formula
             "install"]
 
     args << "address-model=32_64" << "architecture=x86" << "pch=off" if build.universal?
-    args << "--without-python" if build.include? "without-python"
+    args << "--without-python" if build.without? 'python'
 
     system "./bootstrap.sh", *bargs
     system "./bjam", *args

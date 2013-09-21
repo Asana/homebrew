@@ -2,11 +2,11 @@ require 'formula'
 
 class Homebank < Formula
   homepage 'http://homebank.free.fr'
-  url 'http://homebank.free.fr/public/homebank-4.4.tar.gz'
-  sha1 '78b97c0ff118e21a1e0dd1935473601c2b7924a6'
+  url 'http://homebank.free.fr/public/homebank-4.5.2.tar.gz'
+  sha1 'a9caa11edfd15f4dbe2e2957a11026d0b71aea24'
 
   depends_on 'pkg-config' => :build
-  depends_on 'intltool'
+  depends_on 'intltool' => :build
   depends_on 'gettext'
   depends_on 'gtk+'
   depends_on 'hicolor-icon-theme'

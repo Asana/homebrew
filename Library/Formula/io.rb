@@ -2,20 +2,21 @@ require 'formula'
 
 class Io < Formula
   homepage 'http://iolanguage.com/'
-  url 'https://github.com/stevedekorte/io/tarball/2011.09.12'
-  sha1 '56720fe9b2c746ca817c15e48023b256363b3015'
+  url 'https://github.com/stevedekorte/io/archive/2011.09.12.tar.gz'
+  sha1 'edb63aa4ee87052f1512f0770e0c9a9b1ba91082'
 
   head 'https://github.com/stevedekorte/io.git'
 
   option 'without-addons', 'Build without addons'
-  option 'without-python', 'Build without python addon'
 
   depends_on 'cmake' => :build
+  depends_on :python => :recommended
   depends_on 'libevent'
   depends_on 'libffi'
   depends_on 'ossp-uuid'
   depends_on 'pcre'
   depends_on 'yajl'
+  depends_on 'xz'
 
   # Used by Bignum add-on
   depends_on 'gmp' unless build.include? 'without-addons'
@@ -39,18 +40,23 @@ class Io < Formula
 
   def install
     ENV.j1
-    if build.include? 'without-addons'
+    if build.without? 'addons'
       inreplace  "CMakeLists.txt",
         'add_subdirectory(addons)',
         '#add_subdirectory(addons)'
     end
-    if build.include? 'without-python'
+    if build.without? 'python'
       inreplace  "addons/CMakeLists.txt",
         'add_subdirectory(Python)',
         '#add_subdirectory(Python)'
     end
     mkdir 'buildroot' do
-      system "cmake", "..", *std_cmake_args
+      args = std_cmake_args
+      # For Xcode-only systems, the headers of system's python are inside of Xcode:
+      args << "-DPYTHON_INCLUDE_DIR='#{python.incdir}'" if python
+      # Cmake picks up the system's python dylib, even if we have a brewed one:
+      args << "-DPYTHON_LIBRARY='#{python.libdir}/lib#{python.xy}.dylib'" if python
+      system "cmake", "..", *args
       system 'make'
       output = %x[./_build/binaries/io ../libs/iovm/tests/correctness/run.io]
       if $?.exitstatus != 0

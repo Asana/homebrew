@@ -1,129 +1,79 @@
 require 'formula'
 
-def build_java?;   build.include? "java";   end
-def build_perl?;   build.include? "perl";   end
-def build_python?; build.include? "python"; end
-def build_ruby?;   build.include? "ruby";   end
-def with_unicode_path?; build.include? "unicode-path"; end
-
-class UniversalNeon < Requirement
-  def message; <<-EOS.undent
-      A universal build was requested, but neon was already built for a single arch.
-      You will need to `brew rm neon` first.
-    EOS
-  end
-
-  def fatal?
-    true
-  end
-
-  def satisfied?
-    f = Formula.factory('neon')
-    !f.installed? || archs_for_command(f.lib+'libneon.dylib').universal?
-  end
-end
-
-class UniversalSqlite < Requirement
-  def message; <<-EOS.undent
-      A universal build was requested, but sqlite was already built for a single arch.
-      You will need to `brew rm sqlite` first.
-    EOS
-  end
-
-  def fatal?
-    true
-  end
-
-  def satisfied?
-    f = Formula.factory('sqlite')
-    !f.installed? || archs_for_command(f.lib+'libsqlite3.dylib').universal?
-  end
-end
-
-class UniversalSerf < Requirement
-  def message; <<-EOS.undent
-      A universal build was requested, but serf was already built for a single arch.
-      You will need to `brew rm serf` first.
-    EOS
-  end
-
-  def fatal?
-    true
-  end
-
-  def satisfied?
-    f = Formula.factory('serf')
-    !f.installed? || archs_for_command(f.lib+'libserf-1.0.0.0.dylib').universal?
-  end
-end
-
 class Subversion < Formula
   homepage 'http://subversion.apache.org/'
-  url 'http://www.apache.org/dyn/closer.cgi?path=subversion/subversion-1.7.8.tar.bz2'
-  sha1 '12c7d8d5414bba74c9777c4d1dae74f152df63c2'
+  url 'http://www.apache.org/dyn/closer.cgi?path=subversion/subversion-1.8.3.tar.bz2'
+  mirror 'http://archive.apache.org/dist/subversion/subversion-1.8.3.tar.bz2'
+  sha1 'e328e9f1c57f7c78bea4c3af869ec5d4503580cf'
+
+  bottle do
+    sha1 '9171c9971647e04958251d85eee58e4a23ef1584' => :mountain_lion
+    sha1 '9370e1ba8d3204b3d896a85ace719eb3613bb642' => :lion
+    sha1 '1373b9020d7e752e29517ba27670c8cdd5ec4520' => :snow_leopard
+  end
 
   option :universal
   option 'java', 'Build Java bindings'
   option 'perl', 'Build Perl bindings'
-  option 'python', 'Build Python bindings'
   option 'ruby', 'Build Ruby bindings'
-  option 'unicode-path', 'Include support for OS X UTF-8-MAC filename'
 
   depends_on 'pkg-config' => :build
 
   # Always build against Homebrew versions instead of system versions for consistency.
-  depends_on 'neon'
-  depends_on 'sqlite'
   depends_on 'serf'
-
-  if build.universal?
-    depends_on UniversalNeon.new
-    depends_on UniversalSqlite.new
-    depends_on UniversalSerf.new
-  end
+  depends_on 'sqlite'
+  depends_on :python => :optional
 
   # Building Ruby bindings requires libtool
-  depends_on :libtool if build_ruby?
+  depends_on :libtool if build.include? 'ruby'
 
+  # If building bindings, allow non-system interpreters
+  env :userpaths if build.include? 'perl' or build.include? 'ruby'
+
+  # One patch to prevent '-arch ppc' from being pulled in from Perl's $Config{ccflags},
+  # and another one to put the svn-tools directory into libexec instead of bin
   def patches
-    ps = []
-
-    # Patch for Subversion handling of OS X UTF-8-MAC filename.
-    if with_unicode_path?
-      ps << "https://raw.github.com/gist/3044094/1648c28f6133bcbb68b76b42669b0dc237c02dba/patch-path.c.diff"
-    end
-
-    # Patch to prevent '-arch ppc' from being pulled in from Perl's $Config{ccflags}
-    if build_perl?
-      ps << DATA
-    end
-
-    unless ps.empty?
-      { :p0 => ps }
-    end
+    { :p0 => DATA }
   end
 
-  # When building Perl, Python or Ruby bindings, need to use a compiler that
+  # When building Perl or Ruby bindings, need to use a compiler that
   # recognizes GCC-style switches, since that's what the system languages
   # were compiled against.
   fails_with :clang do
     build 318
     cause "core.c:1: error: bad value (native) for -march= switch"
-  end if build_perl? or build_python? or build_ruby?
+  end if build.include? 'perl' or build.include? 'ruby'
 
   def apr_bin
-    superbin or "/usr/bin"
+    Superenv.bin or "/usr/bin"
   end
 
   def install
-    if build_java?
+    if build.include? 'unicode-path'
+      raise Homebrew::InstallationError.new(self, <<-EOS.undent
+        The --unicode-path patch is not supported on Subversion 1.8.
+
+        Upgrading from a 1.7 version built with this patch is not supported.
+
+        You should stay on 1.7, install 1.7 from homebrew-versions, or
+          brew rm subversion && brew install subversion
+        to build a new version of 1.8 without this patch.
+      EOS
+      )
+    end
+
+    if build.include? 'java'
+      # Java support doesn't build correctly in parallel:
+      # https://github.com/mxcl/homebrew/issues/20415
+      ENV.deparallelize
+
       unless build.universal?
         opoo "A non-Universal Java build was requested."
         puts "To use Java bindings with various Java IDEs, you might need a universal build:"
         puts "  brew install subversion --universal --java"
       end
 
-      unless (ENV["JAVA_HOME"] or "").empty?
+      ENV.fetch('JAVA_HOME') do
         opoo "JAVA_HOME is set. Try unsetting it if JNI headers cannot be found."
       end
     end
@@ -136,18 +86,21 @@ class Subversion < Formula
     args = ["--disable-debug",
             "--prefix=#{prefix}",
             "--with-apr=#{apr_bin}",
-            "--with-ssl",
             "--with-zlib=/usr",
-            "--with-sqlite=#{HOMEBREW_PREFIX}",
-            "--with-serf=#{HOMEBREW_PREFIX}",
-            # use our neon, not OS X's
-            "--disable-neon-version-check",
+            "--with-sqlite=#{Formula.factory('sqlite').opt_prefix}",
+            "--with-serf=#{Formula.factory('serf').opt_prefix}",
             "--disable-mod-activation",
+            "--disable-nls",
             "--without-apache-libexecdir",
             "--without-berkeley-db"]
 
-    args << "--enable-javahl" << "--without-jikes" if build_java?
-    args << "--with-ruby-sitedir=#{lib}/ruby" if build_ruby?
+    args << "--enable-javahl" << "--without-jikes" if build.include? 'java'
+
+    if build.include? 'ruby'
+      args << "--with-ruby-sitedir=#{lib}/ruby"
+      # Peg to system Ruby
+      args << "RUBY=/usr/bin/ruby"
+    end
 
     # The system Python is built with llvm-gcc, so we override this
     # variable to prevent failures due to incompatible CFLAGS
@@ -156,22 +109,24 @@ class Subversion < Formula
     system "./configure", *args
     system "make"
     system "make install"
-    (prefix+'etc/bash_completion.d').install 'tools/client-side/bash_completion' => 'subversion'
+    bash_completion.install 'tools/client-side/bash_completion' => 'subversion'
 
-    if build_python?
+    system "make tools"
+    system "make install-tools"
+
+    python do
       system "make swig-py"
       system "make install-swig-py"
     end
 
-    if build_perl?
-      ENV.j1 # This build isn't parallel safe
+    if build.include? 'perl'
       # Remove hard-coded ppc target, add appropriate ones
       if build.universal?
-        arches = "-arch x86_64 -arch i386"
-      elsif MacOS.version == :leopard
-        arches = "-arch i386"
+        arches = Hardware::CPU.universal_archs.as_arch_flags
+      elsif MacOS.version <= :leopard
+        arches = "-arch #{Hardware::CPU.arch_32_bit}"
       else
-        arches = "-arch x86_64"
+        arches = "-arch #{Hardware::CPU.arch_64_bit}"
       end
 
       perl_core = Pathname.new(`perl -MConfig -e 'print $Config{archlib}'`)+'CORE'
@@ -187,31 +142,33 @@ class Subversion < Formula
       system "make", "install-swig-pl", "DESTDIR=#{prefix}"
     end
 
-    if build_java?
-      ENV.j1 # This build isn't parallel safe
+    if build.include? 'java'
       system "make javahl"
       system "make install-javahl"
     end
 
-    if build_ruby?
-      ENV.j1 # This build isn't parallel safe
-      system "make swig-rb"
+    if build.include? 'ruby'
+      # Peg to system Ruby
+      system "make swig-rb EXTRA_SWIG_LDFLAGS=-L/usr/lib"
       system "make install-swig-rb"
     end
   end
 
+  test do
+    system "#{bin}/svnadmin", 'create', 'test'
+    system "#{bin}/svnadmin", 'verify', 'test'
+  end
+
   def caveats
-    s = ""
+    s = <<-EOS.undent
+      svntools have been installed to:
+        #{opt_prefix}/libexec
 
-    if build_python?
-      s += <<-EOS.undent
-        You may need to add the Python bindings to your PYTHONPATH from:
-          #{HOMEBREW_PREFIX}/lib/svn-python
+    EOS
 
-      EOS
-    end
+    s += python.standard_caveats if python
 
-    if build_perl?
+    if build.include? 'perl'
       s += <<-EOS.undent
         The perl bindings are located in various subdirectories of:
           #{prefix}/Library/Perl
@@ -219,7 +176,7 @@ class Subversion < Formula
       EOS
     end
 
-    if build_ruby?
+    if build.include? 'ruby'
       s += <<-EOS.undent
         You may need to add the Ruby bindings to your RUBYLIB from:
           #{HOMEBREW_PREFIX}/lib/ruby
@@ -227,7 +184,7 @@ class Subversion < Formula
       EOS
     end
 
-    if build_java?
+    if build.include? 'java'
       s += <<-EOS.undent
         You may need to link the Java bindings into the Java Extensions folder:
           sudo mkdir -p /Library/Java/Extensions
@@ -236,36 +193,39 @@ class Subversion < Formula
       EOS
     end
 
-    if with_unicode_path?
-      s += <<-EOS.undent
-        This unicode-path version implements a hack to deal with composed/decomposed
-        unicode handling on Mac OS X which is different from linux and windows.
-        It is an implementation of solution 1 from
-        http://svn.collab.net/repos/svn/trunk/notes/unicode-composition-for-filenames
-        which _WILL_ break some setups. Please be sure you understand what you
-        are asking for when you install this version.
-
-      EOS
-    end
-
     return s.empty? ? nil : s
   end
 end
+
 __END__
---- subversion/bindings/swig/perl/native/Makefile.PL.in~	2011-07-16 04:47:59.000000000 -0700
-+++ subversion/bindings/swig/perl/native/Makefile.PL.in	2012-06-27 17:45:57.000000000 -0700
-@@ -57,10 +57,13 @@
- 
+--- subversion/bindings/swig/perl/native/Makefile.PL.in~ 2013-06-20 18:58:55.000000000 +0200
++++ subversion/bindings/swig/perl/native/Makefile.PL.in	2013-06-20 19:00:49.000000000 +0200
+@@ -69,10 +69,15 @@
+
  chomp $apr_shlib_path_var;
- 
+
 +my $config_ccflags = $Config{ccflags};
-+$config_ccflags =~ s/-arch\s+\S+//g; # remove any -arch arguments, since the ones we want will already be in $cflags
++# remove any -arch arguments, since those
++# we want will already be in $cflags
++$config_ccflags =~ s/-arch\s+\S+//g;
 +
  my %config = (
      ABSTRACT => 'Perl bindings for Subversion',
      DEFINE => $cppflags,
 -    CCFLAGS => join(' ', $cflags, $Config{ccflags}),
 +    CCFLAGS => join(' ', $cflags, $config_ccflags),
-     INC  => join(' ',$apr_cflags, $apu_cflags,
+     INC  => join(' ', $includes, $cppflags,
                   " -I$swig_srcdir/perl/libsvn_swig_perl",
                   " -I$svnlib_srcdir/include",
+
+--- Makefile.in~ 2013-07-25 16:55:27.000000000 +0200
++++ Makefile.in 2013-07-25 17:02:02.000000000 +0200
+@@ -85,7 +85,7 @@
+ swig_pydir_extra = @libdir@/svn-python/svn
+ swig_pldir = @libdir@/svn-perl
+ swig_rbdir = $(SWIG_RB_SITE_ARCH_DIR)/svn/ext
+-toolsdir = @bindir@/svn-tools
++toolsdir = @libexecdir@/svn-tools
+
+ javahl_javadir = @libdir@/svn-javahl
+ javahl_javahdir = @libdir@/svn-javahl/include

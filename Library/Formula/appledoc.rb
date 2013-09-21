@@ -1,26 +1,14 @@
 require 'formula'
 
-class LionOrNewer < Requirement
-  def satisfied?
-    MacOS.version >= :lion
-  end
-  def fatal?
-    true
-  end
-  def message
-    "Appledoc requires Mac OS X 10.7 (Lion) or newer."
-  end
-end
-
 class Appledoc < Formula
   homepage 'http://appledoc.gentlebytes.com/'
-  url "https://github.com/tomaz/appledoc/tarball/v2.1"
-  sha1 'd3bd05ce3f7b755cd0dfcb15316bc9f667c1ff2f'
+  url "https://github.com/tomaz/appledoc/archive/v2.2.tar.gz"
+  sha1 '4ad475ee6bdc2e34d6053c4e384aad1781349f5e'
 
   head 'https://github.com/tomaz/appledoc.git', :branch => 'master'
 
-  depends_on :xcode # For working xcodebuild.
-  depends_on LionOrNewer.new
+  depends_on :xcode
+  depends_on :macos => :lion
 
   def install
     system "xcodebuild", "-project", "appledoc.xcodeproj",

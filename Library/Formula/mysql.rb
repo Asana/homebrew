@@ -7,9 +7,9 @@ class Mysql < Formula
   sha1 '7b029e61db68866eeea0bec40d47fcdced30dd36'
 
   bottle do
-    sha1 'a4389fb4c6e77d43b166e29ce1ebf9d9e193bb11' => :mountainlion
-    sha1 '9f0da89543cd96d6352ac6ede0cb2dfd156ea7c1' => :lion
-    sha1 '440103cef7733865f8ceed83a86242648b357ec2' => :snowleopard
+    sha1 '98152e8145a6b505706a6bdbc896c8443436c2fc' => :mountain_lion
+    sha1 '9883662840fdc7582911f2e703990a61a1e40161' => :lion
+    sha1 '82577b2851ac1040593e1b22ccf26cff6475b33b' => :snow_leopard
   end
 
   depends_on 'cmake' => :build
@@ -22,13 +22,11 @@ class Mysql < Formula
   option 'with-archive-storage-engine', 'Compile with the ARCHIVE storage engine enabled'
   option 'with-blackhole-storage-engine', 'Compile with the BLACKHOLE storage engine enabled'
   option 'enable-local-infile', 'Build with local infile loading support'
+  option 'enable-memcached', 'Enable innodb-memcached support'
   option 'enable-debug', 'Build with debug support'
 
-  conflicts_with 'mariadb',
-    :because => "mysql and mariadb install the same binaries."
-
-  conflicts_with 'percona-server',
-    :because => "mysql and percona-server install the same binaries."
+  conflicts_with 'mysql-cluster', 'mariadb', 'percona-server',
+    :because => "mysql, mariadb, and percona install the same binaries."
 
   env :std if build.universal?
 
@@ -38,12 +36,15 @@ class Mysql < Formula
   end
 
   def install
+    # Don't hard-code the libtool path. See:
+    # https://github.com/mxcl/homebrew/issues/20185
+    inreplace "cmake/libutils.cmake",
+      "COMMAND /usr/bin/libtool -static -o ${TARGET_LOCATION}",
+      "COMMAND libtool -static -o ${TARGET_LOCATION}"
+
     # Build without compiler or CPU specific optimization flags to facilitate
     # compilation of gems and other software that queries `mysql-config`.
     ENV.minimal_optimization
-
-    # Make sure the var/mysql directory exists
-    (var+"mysql").mkpath
 
     args = [".",
             "-DCMAKE_INSTALL_PREFIX=#{prefix}",
@@ -78,16 +79,22 @@ class Mysql < Formula
     args << "-DWITH_BLACKHOLE_STORAGE_ENGINE=1" if build.include? 'with-blackhole-storage-engine'
 
     # Make universal for binding to universal applications
-    args << "-DCMAKE_OSX_ARCHITECTURES='i386;x86_64'" if build.universal?
+    args << "-DCMAKE_OSX_ARCHITECTURES='#{Hardware::CPU.universal_archs.as_cmake_arch_flags}'" if build.universal?
 
     # Build with local infile loading support
     args << "-DENABLED_LOCAL_INFILE=1" if build.include? 'enable-local-infile'
+
+    # Build with memcached support
+    args << "-DWITH_INNODB_MEMCACHED=1" if build.include? 'enable-memcached'
 
     # Build with debug support
     args << "-DWITH_DEBUG=1" if build.include? 'enable-debug'
 
     system "cmake", *args
     system "make"
+    # Reported upstream:
+    # http://bugs.mysql.com/bug.php?id=69645
+    inreplace "scripts/mysql_config", / +-Wno[\w-]+/, ""
     system "make install"
 
     # Don't create databases inside of the prefix!
@@ -103,24 +110,24 @@ class Mysql < Formula
       s.gsub!(/pidof/, 'pgrep') if MacOS.version >= :mountain_lion
     end
     ln_s "#{prefix}/support-files/mysql.server", bin
+
+    # Move mysqlaccess to libexec
+    mv "#{bin}/mysqlaccess", libexec
+    mv "#{bin}/mysqlaccess.conf", libexec
+  end
+
+  def post_install
+    # Make sure the var/mysql directory exists
+    (var+"mysql").mkpath
+
+    unless File.exist? "#{var}/mysql/mysql/user.frm"
+      ENV['TMPDIR'] = nil
+      system "#{bin}/mysql_install_db", '--verbose', "--user=#{ENV['USER']}",
+        "--basedir=#{prefix}", "--datadir=#{var}/mysql", "--tmpdir=/tmp"
+    end
   end
 
   def caveats; <<-EOS.undent
-    Set up databases to run AS YOUR USER ACCOUNT with:
-        unset TMPDIR
-        mysql_install_db --verbose --user=`whoami` --basedir="$(brew --prefix mysql)" --datadir=#{var}/mysql --tmpdir=/tmp
-
-    To set up base tables in another folder, or use a different user to run
-    mysqld, view the help for mysqld_install_db:
-        mysql_install_db --help
-
-    and view the MySQL documentation:
-      * http://dev.mysql.com/doc/refman/5.5/en/mysql-install-db.html
-      * http://dev.mysql.com/doc/refman/5.5/en/default-privileges.html
-
-    To run as, for instance, user "mysql", you may need to `sudo`:
-        sudo mysql_install_db ...options...
-
     A "/etc/my.cnf" from another install may interfere with a Homebrew-built
     server starting up correctly.
 
@@ -140,16 +147,23 @@ class Mysql < Formula
       <true/>
       <key>Label</key>
       <string>#{plist_name}</string>
-      <key>Program</key>
-      <string>#{opt_prefix}/bin/mysqld_safe</string>
+      <key>ProgramArguments</key>
+      <array>
+        <string>#{opt_prefix}/bin/mysqld_safe</string>
+        <string>--bind-address=127.0.0.1</string>
+      </array>
       <key>RunAtLoad</key>
       <true/>
-      <key>UserName</key>
-      <string>#{`whoami`.chomp}</string>
       <key>WorkingDirectory</key>
       <string>#{var}</string>
     </dict>
     </plist>
     EOS
+  end
+
+  test do
+    (prefix+'mysql-test').cd do
+      system './mysql-test-run.pl', 'status'
+    end
   end
 end

@@ -2,8 +2,9 @@ require 'formula'
 
 class Plowshare < Formula
   homepage 'http://code.google.com/p/plowshare/'
-  url 'http://plowshare.googlecode.com/files/plowshare-snapshot-git20120930.tar.gz'
-  sha1 'd8272d2a325764f855d77158e0ed35e70d9d1968'
+  url 'http://plowshare.googlecode.com/files/plowshare4-snapshot-git20130901.1c5013f.tar.gz'
+  version '4.GIT-1c5013f'
+  sha1 '57f2351d0136ad7a79e99c12be230b144166afaf'
 
   head 'https://code.google.com/p/plowshare/', :using => :git
 
@@ -35,7 +36,6 @@ class Plowshare < Formula
   end
 end
 
-
 # This patch makes sure GNUtools are used on OSX.
 # gnu-getopt is keg-only hence the backtick expansion.
 # These aliases only exist for the duration of plowshare,
@@ -46,7 +46,7 @@ __END__
 --- a/src/core.sh
 +++ b/src/core.sh
 @@ -1,4 +1,8 @@
- #!/bin/bash
+ #!/usr/bin/env bash
 +shopt -s expand_aliases
 +alias sed='gsed'
 +alias getopt='`brew --prefix gnu-getopt`/bin/getopt'
