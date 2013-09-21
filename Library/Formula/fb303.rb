@@ -5,7 +5,7 @@ class Fb303 < Formula
 
   # We use a custom verion of fb303, although we may try to submit these changes back.
   url 'git://github.com/Asana/thrift.git', :branch => "trunk"
-  version "7678ccd570"
+  version "2ac809e92e9afaf8b98bc3652a00669d71b137f1"
 
   depends_on 'thrift'
   depends_on 'automake'
