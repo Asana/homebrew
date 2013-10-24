@@ -3,9 +3,10 @@ require 'options'
 # This class holds the build-time options defined for a Formula,
 # and provides named access to those options during install.
 class BuildOptions
-  attr_accessor :args
   include Enumerable
 
+  attr_accessor :args
+  attr_accessor :universal
   attr_reader :options
   protected :options
 
@@ -72,6 +73,10 @@ class BuildOptions
     not with? name
   end
 
+  def bottle?
+    args.include? '--build-bottle'
+  end
+
   def head?
     args.include? '--HEAD'
   end
@@ -86,7 +91,7 @@ class BuildOptions
 
   # True if the user requested a universal build.
   def universal?
-    args.include?('--universal') && has_option?('universal')
+    universal || args.include?('--universal') && has_option?('universal')
   end
 
   # Request a 32-bit only build.

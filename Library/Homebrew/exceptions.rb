@@ -44,7 +44,7 @@ class FormulaUnavailableError < RuntimeError
   end
 
   def to_s
-    if name =~ %r{(\w+)/(\w+)/([^/]+)} then <<-EOS.undent
+    if name =~ HOMEBREW_TAP_FORMULA_REGEX then <<-EOS.undent
       No available formula for #$3 #{dependent_s}
       Please tap it and then try again: brew tap #$1/#$2
       EOS
@@ -213,21 +213,17 @@ end
 # raised by CompilerSelector if the formula fails with all of
 # the compilers available on the user's system
 class CompilerSelectionError < StandardError
-  def message
-    if MacOS.version > :tiger then <<-EOS.undent
-      This formula cannot be built with any available compilers.
-      To install this formula, you may need to:
-        brew tap homebrew/dupes
-        brew install apple-gcc42
-      EOS
-    # tigerbrew has a separate apple-gcc42 for Xcode 2.5
-    else <<-EOS.undent
-      This formula cannot be built with any available compilers.
-      To install this formula, you need to:
-        brew install apple-gcc42
-      EOS
-    end
+  def message; <<-EOS.undent
+    This formula cannot be built with any available compilers.
+    To install this formula, you may need to:
+      brew install apple-gcc42
+    EOS
   end
+end
+
+# raised in install_tap
+class AlreadyTappedError < RuntimeError
+  def initialize; super "Already tapped!" end
 end
 
 # raised in CurlDownloadStrategy.fetch

@@ -1,4 +1,3 @@
-require 'dependency_collector'
 require 'formula_support'
 require 'formula_lock'
 require 'formula_pin'
@@ -10,19 +9,21 @@ require 'build_environment'
 require 'build_options'
 require 'formulary'
 require 'software_spec'
-
+require 'install_renamed'
 
 class Formula
   include FileUtils
   include Utils::Inreplace
   extend BuildEnvironmentDSL
 
-  attr_reader :name, :path, :homepage, :downloader
+  attr_reader :name, :path, :homepage, :downloader, :build
   attr_reader :stable, :bottle, :devel, :head, :active_spec
 
   # The current working directory during builds and tests.
   # Will only be non-nil inside #stage and #test.
   attr_reader :buildpath, :testpath
+
+  attr_accessor :local_bottle_path
 
   # Homebrew determines the name
   def initialize name='__UNKNOWN__', path=nil
@@ -48,20 +49,14 @@ class Formula
     @active_spec = determine_active_spec
     validate_attributes :url, :name, :version
     @downloader = active_spec.downloader
-
-    # Combine DSL `option` and `def options`
-    options.each do |opt, desc|
-      # make sure to strip "--" from the start of options
-      self.class.build.add opt[/--(.+)$/, 1], desc
-    end
+    @build = determine_build_options
 
     @pin = FormulaPin.new(self)
   end
 
   def set_spec(name)
     spec = self.class.send(name)
-    return if spec.nil?
-    if block_given? && yield(spec) || !spec.url.nil?
+    if block_given? && yield(spec) || spec.url
       spec.owner = self
       instance_variable_set("@#{name}", spec)
     end
@@ -88,6 +83,16 @@ class Formula
     end
   end
 
+  def default_build?
+    self.class.build.used_options.empty?
+  end
+
+  def determine_build_options
+    build = active_spec.build
+    options.each { |opt, desc| build.add(opt, desc) }
+    build
+  end
+
   def url;      active_spec.url;     end
   def version;  active_spec.version; end
   def mirrors;  active_spec.mirrors; end
@@ -98,6 +103,14 @@ class Formula
 
   def resources
     active_spec.resources.values
+  end
+
+  def deps
+    active_spec.deps
+  end
+
+  def requirements
+    active_spec.requirements
   end
 
   # if the dir is there, but it's empty we consider it not installed
@@ -151,12 +164,19 @@ class Formula
   def kext_prefix; prefix+'Library/Extensions' end
 
   # configuration needs to be preserved past upgrades
-  def etc; HOMEBREW_GIT_ETC ? prefix+'etc' : HOMEBREW_PREFIX+'etc' end
+  def etc; (HOMEBREW_PREFIX+'etc').extend(InstallRenamed) end
+
   # generally we don't want var stuff inside the keg
   def var; HOMEBREW_PREFIX+'var' end
 
-  def bash_completion; prefix+'etc/bash_completion.d' end
+  def bash_completion
+    etc = ENV['HOMEBREW_GIT_ETC'] ? self.etc : prefix+'etc'
+    etc+'bash_completion.d'
+  end
   def zsh_completion;  share+'zsh/site-functions'     end
+
+  # for storing etc, var files for later copying from bottles
+  def bottle_prefix; prefix+'.bottle' end
 
   # override this to provide a plist
   def plist; nil; end
@@ -166,9 +186,6 @@ class Formula
   def plist_path; prefix+(plist_name+'.plist') end
   def plist_manual; self.class.plist_manual end
   def plist_startup; self.class.plist_startup end
-
-  # Defined and active build-time options.
-  def build; self.class.build; end
 
   def opt_prefix
     Pathname.new("#{HOMEBREW_PREFIX}/opt/#{name}")
@@ -281,12 +298,11 @@ class Formula
     @pin.unpin
   end
 
-  def == b
-    name == b.name
+  def == other
+    instance_of?(other.class) && name == other.name
   end
-  def eql? b
-    self == b and self.class.equal? b.class
-  end
+  alias_method :eql?, :==
+
   def hash
     name.hash
   end
@@ -439,9 +455,6 @@ class Formula
   def self.path name
     Pathname.new("#{HOMEBREW_REPOSITORY}/Library/Formula/#{name.downcase}.rb")
   end
-
-  def deps;         self.class.dependencies.deps;         end
-  def requirements; self.class.dependencies.requirements; end
 
   def env
     @env ||= self.class.env
@@ -641,72 +654,62 @@ class Formula
     attr_rw :homepage, :keg_only_reason, :cc_failures
     attr_rw :plist_startup, :plist_manual
 
+    def specs
+      @specs ||= [stable, devel, head, bottle].freeze
+    end
+
+    def url val, specs={}
+      stable.url(val, specs)
+    end
+
+    def version val=nil
+      stable.version(val)
+    end
+
+    def mirror val
+      stable.mirror(val)
+    end
+
     Checksum::TYPES.each do |cksum|
       class_eval <<-EOS, __FILE__, __LINE__ + 1
         def #{cksum}(val)
-          @stable ||= create_spec(SoftwareSpec)
-          @stable.#{cksum}(val)
+          stable.#{cksum}(val)
         end
       EOS
     end
 
-    def specs
-      @specs ||= []
-    end
-
-    def create_spec(klass)
-      spec = klass.new
-      specs << spec
-      spec
-    end
-
     def build
-      @build ||= BuildOptions.new(ARGV.options_only)
-    end
-
-    def url val, specs={}
-      @stable ||= create_spec(SoftwareSpec)
-      @stable.url(val, specs)
+      stable.build
     end
 
     def stable &block
+      @stable ||= SoftwareSpec.new
       return @stable unless block_given?
-      @stable ||= create_spec(SoftwareSpec)
       @stable.instance_eval(&block)
     end
 
     def bottle *, &block
+      @bottle ||= Bottle.new
       return @bottle unless block_given?
-      @bottle ||= create_spec(Bottle)
       @bottle.instance_eval(&block)
+      @bottle.version = @stable.version
     end
 
     def devel &block
+      @devel ||= SoftwareSpec.new
       return @devel unless block_given?
-      @devel ||= create_spec(SoftwareSpec)
       @devel.instance_eval(&block)
     end
 
     def head val=nil, specs={}, &block
+      @head ||= HeadSoftwareSpec.new
       if block_given?
-        @head ||= create_spec(HeadSoftwareSpec)
         @head.instance_eval(&block)
       elsif val
-        @head ||= create_spec(HeadSoftwareSpec)
         @head.url(val, specs)
       else
         @head
       end
-    end
-
-    def version val=nil
-      @stable ||= create_spec(SoftwareSpec)
-      @stable.version(val)
-    end
-
-    def mirror val
-      @stable ||= create_spec(SoftwareSpec)
-      @stable.mirror(val)
     end
 
     # Define a named resource using a SoftwareSpec style block
@@ -716,21 +719,12 @@ class Formula
       end
     end
 
-    def dependencies
-      @dependencies ||= DependencyCollector.new
-    end
-
     def depends_on dep
-      d = dependencies.add(dep)
-      build.add_dep_option(d) unless d.nil?
+      specs.each { |spec| spec.depends_on(dep) }
     end
 
     def option name, description=nil
-      # Support symbols
-      name = name.to_s
-      raise "Option name is required." if name.empty?
-      raise "Options should not start with dashes." if name[0, 1] == "-"
-      build.add name, description
+      specs.each { |spec| spec.option(name, description) }
     end
 
     def plist_options options
@@ -777,6 +771,10 @@ class Formula
     def fails_with compiler, &block
       @cc_failures ||= Set.new
       @cc_failures << CompilerFailure.new(compiler, &block)
+    end
+
+    def require_universal_deps
+      specs.each { |spec| spec.build.universal = true }
     end
 
     def test &block

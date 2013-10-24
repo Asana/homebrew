@@ -1,5 +1,5 @@
 require 'tab'
-require 'macos'
+require 'os/mac'
 require 'extend/ARGV'
 require 'bottle_version'
 
@@ -11,13 +11,11 @@ def bottle_filename f, bottle_revision=nil
 end
 
 def install_bottle? f, options={:warn=>false}
-  return true if f.downloader and defined? f.downloader.local_bottle_path \
-    and f.downloader.local_bottle_path
-
+  return true if f.local_bottle_path
   return false if ARGV.build_from_source?
   return true if ARGV.force_bottle?
   return false unless f.pour_bottle?
-  return false unless f.build.used_options.empty?
+  return false unless f.default_build?
   return false unless bottle_current?(f)
   if f.bottle.cellar != :any && f.bottle.cellar != HOMEBREW_CELLAR.to_s
     if options[:warn]
@@ -50,11 +48,6 @@ def bottle_file_outdated? f, file
   bottle_ext && bottle_url_ext && bottle_ext != bottle_url_ext
 end
 
-def bottle_new_revision f
-  return 0 unless bottle_current? f
-  f.bottle.revision + 1
-end
-
 def bottle_native_suffix revision=nil
   ".#{bottle_tag}#{bottle_suffix(revision)}"
 end
@@ -82,13 +75,18 @@ def bottle_url f
 end
 
 def bottle_tag
-  case MacOS.version
-  when "10.8", "10.7", "10.5"
+  if MacOS.version >= :lion
     MacOS.cat
-  when "10.6"
+  elsif MacOS.version == :snow_leopard
     Hardware::CPU.is_64_bit? ? :snow_leopard : :snow_leopard_32
   else
-    Hardware::CPU.type == :ppc ? Hardware::CPU.family : MacOS.cat
+    # Return, e.g., :tiger_g3, :leopard_g5_64, :leopard_64 (which is Intel)
+    if Hardware::CPU.type == :ppc
+      tag = "#{MacOS.cat}_#{Hardware::CPU.family}".to_sym
+    else
+      tag = MacOS.cat
+    end
+    MacOS.prefer_64_bit? ? "#{tag}_64".to_sym : tag
   end
 end
 

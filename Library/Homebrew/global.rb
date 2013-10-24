@@ -5,6 +5,7 @@ require 'extend/ARGV'
 require 'extend/string'
 require 'extend/symbol'
 require 'extend/enumerable'
+require 'os'
 require 'utils'
 require 'exceptions'
 require 'set'
@@ -72,11 +73,9 @@ if RUBY_PLATFORM =~ /darwin/
   MACOS_FULL_VERSION = `/usr/bin/sw_vers -productVersion`.chomp
   MACOS_VERSION = MACOS_FULL_VERSION[/10\.\d+/].to_f
   OS_VERSION = "Mac OS X #{MACOS_FULL_VERSION}"
-  MACOS = true
 else
   MACOS_FULL_VERSION = MACOS_VERSION = 0
   OS_VERSION = RUBY_PLATFORM
-  MACOS = false
 end
 
 HOMEBREW_GITHUB_API_TOKEN = ENV["HOMEBREW_GITHUB_API_TOKEN"]
@@ -84,7 +83,7 @@ HOMEBREW_USER_AGENT = "Homebrew #{HOMEBREW_VERSION} (Ruby #{RUBY_VERSION}-#{RUBY
 
 HOMEBREW_CURL_ARGS = '-f#LA'
 
-HOMEBREW_GIT_ETC = !ENV['HOMEBREW_GIT_ETC'].nil?
+HOMEBREW_TAP_FORMULA_REGEX = %r{^(\w+)/(\w+)/([^/]+)$}
 
 module Homebrew extend self
   include FileUtils

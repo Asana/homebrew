@@ -13,49 +13,50 @@ class Imagemagick < Formula
   homepage 'http://www.imagemagick.org'
 
   # upstream's stable tarballs tend to disappear, so we provide our own mirror
-  url 'http://downloads.sf.net/project/machomebrew/mirror/ImageMagick-6.7.7-6.tar.bz2'
-  sha256 'fb32cdeef812bc2c3bb9e9f48f3cfc75c1e2640f784ef2670a0dbf948e538677'
+  # Tarball and checksum from: http://www.imagemagick.org/download
+  url 'http://downloads.sf.net/project/machomebrew/mirror/ImageMagick-6.8.7-0.tar.bz2'
+  sha256 '841f34ffd92cf043b2b5ec949887c6e09e4af53812fd0f4b0186f8954cb0910f'
 
   head 'https://www.imagemagick.org/subversion/ImageMagick/trunk',
     :using => UnsafeSubversionDownloadStrategy
 
-  option 'with-ghostscript', 'Compile against ghostscript (not recommended.)'
-  option 'use-tiff', 'Compile with libtiff support.'
-  option 'use-cms', 'Compile with little-cms support.'
-  option 'use-jpeg2000', 'Compile with jasper support.'
-  option 'use-wmf', 'Compile with libwmf support.'
-  option 'use-rsvg', 'Compile with librsvg support.'
-  option 'use-lqr', 'Compile with liblqr support.'
-  option 'use-exr', 'Compile with openexr support.'
-  option 'enable-openmp', 'Enable OpenMP (not supported on Leopard or with Clang).'
-  option 'disable-opencl', 'Disable OpenCL.'
-  option 'enable-hdri', 'Compile with HDRI support enabled'
-  option 'without-magick-plus-plus', "Don't compile C++ interface."
+  bottle do
+    sha1 'f352bf49c3f5376f4536b62f0f2c90f60df18f66' => :mountain_lion
+    sha1 '68b4f53526f8703df0dafbeffd8b793e193cc334' => :lion
+    sha1 '40110c9eded6425c6863de96f907edc0ab51cb63' => :snow_leopard
+  end
+
   option 'with-quantum-depth-8', 'Compile with a quantum depth of 8 bit'
   option 'with-quantum-depth-16', 'Compile with a quantum depth of 16 bit'
   option 'with-quantum-depth-32', 'Compile with a quantum depth of 32 bit'
-  option 'with-x', 'Compile with X11 support.'
-  option 'with-fontconfig', 'Compile with fontconfig support.'
-  option 'without-freetype', 'Compile without freetype support.'
+  option 'with-perl', 'enable build/install of PerlMagick'
+  option 'without-magick-plus-plus', 'disable build/install of Magick++'
+
+  depends_on :libltdl
 
   depends_on 'pkg-config' => :build
 
   depends_on 'jpeg' => :recommended
-  depends_on :libpng
-  depends_on :x11 if build.include? 'with-x'
-  # Can't use => with symbol deps
-  depends_on :fontconfig if build.include? 'with-fontconfig' or MacOS::X11.installed? # => :optional
-  depends_on :freetype unless build.include? 'without-freetype' and not MacOS::X11.installed? # => :recommended
+  depends_on :libpng => :recommended
+  depends_on :freetype => :recommended
 
-  depends_on 'ghostscript' => :optional if ghostscript_srsly?
+  depends_on :x11 => :optional
+  depends_on :fontconfig => :optional
+  depends_on 'libtiff' => :optional
+  depends_on 'little-cms' => :optional
+  depends_on 'little-cms2' => :optional
+  depends_on 'jasper' => :optional
+  depends_on 'libwmf' => :optional
+  depends_on 'librsvg' => :optional
+  depends_on 'liblqr' => :optional
+  depends_on 'openexr' => :optional
+  depends_on 'ghostscript' => :optional
+  depends_on 'webp' => :optional
 
-  depends_on 'libtiff' => :optional if build.include? 'use-tiff'
-  depends_on 'little-cms' => :optional if build.include? 'use-cms'
-  depends_on 'jasper' => :optional if build.include? 'use-jpeg2000'
-  depends_on 'libwmf' => :optional if build.include? 'use-wmf'
-  depends_on 'librsvg' => :optional if build.include? 'use-rsvg'
-  depends_on 'liblqr' => :optional if build.include? 'use-lqr'
-  depends_on 'openexr' => :optional if build.include? 'use-exr'
+  opoo '--with-ghostscript is not recommended' if build.with? 'ghostscript'
+  if build.with? 'openmp' and (MacOS.version == :leopard or ENV.compiler == :clang)
+    opoo '--with-openmp is not supported on Leopard or with Clang'
+  end
 
   bottle do
     version "3"
@@ -75,7 +76,6 @@ class Imagemagick < Formula
 
   def install
     args = [ "--disable-osx-universal-binary",
-             "--without-perl", # I couldn't make this compile
              "--prefix=#{prefix}",
              "--disable-dependency-tracking",
              "--enable-shared",
@@ -86,10 +86,10 @@ class Imagemagick < Formula
 
     args << "--disable-openmp" unless build.include? 'enable-openmp'
     args << "--disable-opencl" if build.include? 'disable-opencl'
-    args << "--without-gslib" unless build.include? 'with-ghostscript'
-    args << "--with-gs-font-dir=#{HOMEBREW_PREFIX}/share/ghostscript/fonts" \
-                unless ghostscript_srsly? or ghostscript_fonts?
-    args << "--without-magick-plus-plus" if build.include? 'without-magick-plus-plus'
+    args << "--without-gslib" unless build.with? 'ghostscript'
+    args << "--without-perl" unless build.with? 'perl'
+    args << "--with-gs-font-dir=#{HOMEBREW_PREFIX}/share/ghostscript/fonts" unless build.with? 'ghostscript'
+    args << "--without-magick-plus-plus" if build.without? 'magick-plus-plus'
     args << "--enable-hdri=yes" if build.include? 'enable-hdri'
 
     if build.include? 'with-quantum-depth-32'
@@ -113,17 +113,21 @@ class Imagemagick < Formula
   end
 
   def caveats
-    unless ghostscript_fonts? or ghostscript_srsly?
-      <<-EOS.undent
-      Some tools will complain unless the ghostscript fonts are installed to:
-        #{HOMEBREW_PREFIX}/share/ghostscript/fonts
-      EOS
-    end
+    s = <<-EOS.undent
+      For full Perl support you must install the Image::Magick module from the CPAN.
+        https://metacpan.org/module/Image::Magick
+
+      The version of the Perl module and ImageMagick itself need to be kept in sync.
+      If you upgrade one, you must upgrade the other.
+
+      For this version of ImageMagick you should install
+      version #{version} of the Image::Magick Perl module.
+    EOS
+    s if build.with? 'perl'
   end
 
-  def test
-    system "#{bin}/identify", \
-      "/System/Library/Frameworks/SecurityInterface.framework/Versions/A/Resources/Key_Large.png"
+  test do
+    system "#{bin}/identify", "/usr/share/doc/cups/images/cups.png"
   end
 end
 

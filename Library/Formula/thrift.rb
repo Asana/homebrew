@@ -7,7 +7,13 @@ class Thrift < Formula
   url 'http://www.apache.org/dyn/closer.cgi?path=thrift/0.8.0/thrift-0.8.0.tar.gz'
   sha1 '1d652d7078d9cc70e2a45d3119b13e86ebd446da'
 
-  head 'https://git-wip-us.apache.org/repos/asf/thrift.git', :branch => "master"
+  head do
+    url 'https://git-wip-us.apache.org/repos/asf/thrift.git', :branch => "master"
+
+    depends_on :autoconf
+    depends_on :automake
+    depends_on :libtool
+  end
 
   option "with-haskell", "Install Haskell binding"
   option "with-erlang", "Install Erlang binding"
@@ -18,11 +24,6 @@ class Thrift < Formula
   depends_on 'boost'
   depends_on 'libevent'
   depends_on :python => :optional
-  if build.head?
-    depends_on :autoconf
-    depends_on :automake
-    depends_on :libtool
-  end
 
   # Includes are fixed in the upstream. Please remove this patch in the next version > 0.9.0
   def patches

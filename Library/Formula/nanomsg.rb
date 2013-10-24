@@ -2,25 +2,25 @@ require 'formula'
 
 class Nanomsg < Formula
   homepage 'http://nanomsg.org'
-  url 'http://download.nanomsg.org/nanomsg-0.1-alpha.tar.gz'
-  version '0.1-alpha'
-  sha1 '6b2d9bd60bfcf9377befa006608598716e1c1fe9'
+  url 'http://download.nanomsg.org/nanomsg-0.2-alpha.tar.gz'
+  version '0.2-alpha'
+  sha1 'ecdc7189787f6b000e94f29c648db1f292d872ac'
 
-  head 'https://github.com/nanomsg/nanomsg.git'
+  head do
+    url 'https://github.com/nanomsg/nanomsg.git'
 
-  option 'with-test', 'Verify the build with make check'
-  option 'with-doc', 'Install man pages' if build.head?
-  option 'without-nanocat', 'Do not install nanocat tool' if build.head?
-
-  if build.head? then
     depends_on :autoconf
     depends_on :automake
   end
 
+  option 'with-test', 'Verify the build with make check'
+  option 'with-doc', 'Install man pages'
+  option 'without-nanocat', 'Do not install nanocat tool'
+
   depends_on 'pkg-config'=> :build
   depends_on :libtool
 
-  if build.with? 'doc' then
+  if build.with? 'doc'
     depends_on 'asciidoc' => :build
     depends_on 'xmlto' => :build
   end
