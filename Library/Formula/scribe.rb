@@ -14,10 +14,9 @@ class Scribe < Formula
 
   def install
     # xcxc libevent location
-    ENV["CPPFLAGS"] = "-DHAVE_NETDB_H=1 -DHAVE_NETINET_IN_H=1 -DHAVE_INTTYPES_H=1 -fpermissive -I#{HOMEBREW_PREFIX}/include"
-    ENV["CC"] = "gcc"
-    ENV["CXX"] = "g++"
-    ENV["LDFLAGS"] = "-L#{HOMEBREW_PREFIX}/lib"
+    ENV["CPPFLAGS"] = "-DHAVE_NETDB_H=1 -DHAVE_NETINET_IN_H=1 -DHAVE_INTTYPES_H=1 -fpermissive "
+    ENV["CXX"] = "clang++ -std=c++11 -stdlib=libc++"
+    ENV["LDFLAGS"] = ""
     ENV["PY_PREFIX"] = "#{HOMEBREW_PREFIX}"
     system "./bootstrap.sh", "--with-boost=#{HOMEBREW_PREFIX}"
     system "./configure", "--prefix=#{prefix}",

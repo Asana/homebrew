@@ -17,11 +17,10 @@ class Fb303 < Formula
 
     # These were in admin/configure.py. I don't know what they do.
     ENV["CPPFLAGS"] = "-DHAVE_NETDB_H=1 -DHAVE_NETINET_IN_H=1 -DHAVE_INTTYPES_H=1 -fpermissive -fPIC"
+    ENV["CXXFLAGS"] = "-std=c++11 -stdlib=libc++"
     ENV["PY_PREFIX"] = "#{HOMEBREW_PREFIX}"
-    ENV["CC"] = "gcc"
-    ENV["CXX"] = "g++"
     system "./bootstrap.sh"
-
+    ENV["CXX"] = "clang++ -std=c++11 -stdlib=libc++"
     # Language bindings try to install outside of Homebrew's prefix, so
     # omit them here. For ruby you can install the gem, and for Python
     # you can use pip or easy_install.
