@@ -6,6 +6,12 @@ class Automake < Formula
   mirror 'http://ftp.gnu.org/gnu/automake/automake-1.12.5.tar.gz'
   sha1 'e3c4331e53a95d195a8e51eea4f0ec3785bdb800'
 
+  bottle do
+    sha1 'd4b453a2c8d0f4c0cefa499a8f658448d781225e' => :mavericks
+    sha1 'bbbd4cc22501df3e747596d4bfd02cba987fc852' => :mountain_lion
+    sha1 '8ee87f97dc533fd1b86a46dff0b05d831070c6cb' => :lion
+  end
+
   # Always needs a newer autoconf, even on Snow Leopard.
   depends_on 'autoconf'
 
