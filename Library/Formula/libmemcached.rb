@@ -18,7 +18,7 @@ class Libmemcached < Formula
   def patches
     if MacOS.version >= :mavericks and ENV.compiler == :clang
       # build fix for tr1 -> std
-      DATA
+      #DATA
     end
   end
 

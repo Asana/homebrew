@@ -37,7 +37,7 @@ class Mysql < Formula
   end
 
   def patches
-    DATA
+    #DATA
   end
 
   def install
